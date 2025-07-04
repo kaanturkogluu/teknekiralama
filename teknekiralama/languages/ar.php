@@ -51,5 +51,9 @@ return [
     'paid' => 'تم الدفع',
     'pending' => 'قيد الانتظار',
     'failed' => 'فشل',
+    'payment_success' => 'تمت عملية الدفع بنجاح.',
+    'payment_failed' => 'فشلت عملية الدفع.',
+    'new_reservation' => 'حجز ودفع جديد',
+    'new_reservation_info' => 'تم إجراء حجز ودفع جديد لقاربك.',
     // ... ترجمات أخرى ...
 ]; 

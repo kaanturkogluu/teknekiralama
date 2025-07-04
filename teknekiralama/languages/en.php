@@ -51,5 +51,9 @@ return [
     'paid' => 'Paid',
     'pending' => 'Pending',
     'failed' => 'Failed',
+    'payment_success' => 'Your payment was successful.',
+    'payment_failed' => 'Payment failed.',
+    'new_reservation' => 'New reservation and payment',
+    'new_reservation_info' => 'A new reservation and payment has been made for your boat.',
     // ... other translations ...
 ]; 

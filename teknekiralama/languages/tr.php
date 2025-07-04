@@ -51,5 +51,9 @@ return [
     'paid' => 'Ödendi',
     'pending' => 'Bekliyor',
     'failed' => 'Başarısız',
+    'payment_success' => 'Ödeme işleminiz başarıyla tamamlandı.',
+    'payment_failed' => 'Ödeme başarısız oldu.',
+    'new_reservation' => 'Yeni rezervasyon ve ödeme',
+    'new_reservation_info' => 'Teknenize yeni bir rezervasyon ve ödeme yapıldı.',
     // ... diğer çeviriler ...
 ]; 

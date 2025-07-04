@@ -8,6 +8,11 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'customer') {
 }
 require 'db.php';
 require 'config.php';
+require_once __DIR__ . '/vendor/autoload.php';
+
+use Iyzipay\Options;
+use Iyzipay\Request\CreateCheckoutFormInitializeRequest;
+use Iyzipay\Model\CheckoutFormInitialize;
 
 $reservation_id = $_GET['reservation_id'] ?? null;
 if (!$reservation_id) {
@@ -36,26 +41,60 @@ if ($payment) {
 // Komisyon ve net tutar hesapla
 $commission = round($reservation['total_price'] * COMMISSION_RATE / 100, 2);
 $net = $reservation['total_price'] - $commission;
-$success = false;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Gerçek ödeme entegrasyonu yerine simülasyon
-    $stmt = $pdo->prepare('INSERT INTO payments (reservation_id, amount, commission, status) VALUES (?, ?, ?, ?)');
-    $stmt->execute([$reservation_id, $net, $commission, 'paid']);
-    $success = true;
-}
+
+// iyzico ile ödeme formu oluştur
+$options = new Options();
+$options->setApiKey(IYZICO_API_KEY);
+$options->setSecretKey(IYZICO_SECRET_KEY);
+$options->setBaseUrl(IYZICO_BASE_URL);
+
+$request = new CreateCheckoutFormInitializeRequest();
+$request->setLocale("tr");
+$request->setConversationId($reservation_id);
+$request->setPrice($reservation['total_price']);
+$request->setPaidPrice($reservation['total_price']);
+$request->setCurrency("TRY");
+$request->setBasketId($reservation_id);
+$request->setPaymentGroup("PRODUCT");
+$request->setCallbackUrl("http://" . $_SERVER['HTTP_HOST'] . "/pay_callback.php?reservation_id=" . $reservation_id);
+
+// Kullanıcı bilgileri (örnek, gerçek projede user tablosundan alınmalı)
+$buyer = new \Iyzipay\Model\Buyer();
+$buyer->setId($_SESSION['user_id']);
+$buyer->setName($_SESSION['name'] ?? 'Müşteri');
+$buyer->setSurname('');
+$buyer->setGsmNumber('+905555555555');
+$buyer->setEmail('test@example.com'); // Gerçek projede user tablosundan alınmalı
+$buyer->setIdentityNumber('11111111110');
+$buyer->setRegistrationAddress('Adres');
+$buyer->setIp($_SERVER['REMOTE_ADDR']);
+$buyer->setCity('İstanbul');
+$buyer->setCountry('Turkey');
+$buyer->setZipCode('34000');
+$request->setBuyer($buyer);
+
+// Sepet (tek ürün)
+$basketItem = new \Iyzipay\Model\BasketItem();
+$basketItem->setId($reservation_id);
+$basketItem->setName('Tekne Kiralama');
+$basketItem->setCategory1('Tekne');
+$basketItem->setItemType(\Iyzipay\Model\BasketItemType::PHYSICAL);
+$basketItem->setPrice($reservation['total_price']);
+$request->setBasketItems([$basketItem]);
+
+$checkoutForm = CheckoutFormInitialize::create($request, $options);
+
 ?>
 <main>
     <div class="container">
         <h2><?php echo $langArr['pay_now'] ?? 'Şimdi Öde'; ?></h2>
-        <?php if ($success): ?>
-            <div class="success"><?php echo $langArr['paid'] ?? 'Ödendi'; ?>. <a href="customer/reservations.php"><< <?php echo $langArr['make_reservation'] ?? 'Rezervasyonlarım'; ?></a></div>
+        <p><?php echo $langArr['total_price'] ?? 'Toplam Tutar'; ?>: <b>₺<?php echo $reservation['total_price']; ?></b></p>
+        <p><?php echo $langArr['commission'] ?? 'Komisyon'; ?>: <b>₺<?php echo $commission; ?></b></p>
+        <p><?php echo $langArr['amount'] ?? 'Net Tutar'; ?>: <b>₺<?php echo $net; ?></b></p>
+        <?php if ($checkoutForm->getStatus() === 'success'): ?>
+            <?php echo $checkoutForm->getCheckoutFormContent(); ?>
         <?php else: ?>
-            <form method="post">
-                <p><?php echo $langArr['total_price'] ?? 'Toplam Tutar'; ?>: <b>₺<?php echo $reservation['total_price']; ?></b></p>
-                <p><?php echo $langArr['commission'] ?? 'Komisyon'; ?>: <b>₺<?php echo $commission; ?></b></p>
-                <p><?php echo $langArr['amount'] ?? 'Net Tutar'; ?>: <b>₺<?php echo $net; ?></b></p>
-                <button type="submit"><?php echo $langArr['pay_now'] ?? 'Şimdi Öde'; ?></button>
-            </form>
+            <div class="error">Ödeme başlatılamadı: <?php echo htmlspecialchars($checkoutForm->getErrorMessage()); ?></div>
         <?php endif; ?>
     </div>
 </main>
