@@ -1,0 +1,13 @@
+# Temel güvenlik
+Options -Indexes
+
+# URL rewrite (isteğe bağlı, SEO için)
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]
+</IfModule>
+
+# UTF-8 desteği
+AddDefaultCharset UTF-8 
